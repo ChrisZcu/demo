@@ -51,11 +51,10 @@ public class ProcessingLwjglTest1
     private Location checkCenter = new Location(-1, -1);
 
 
-    @Override
-    public void settings() {
-        size(1000, 800);
-
-    }
+//    @Override
+//    public void settings() {
+//        size(1000, 800);
+//    }
 
     @Override
     public void setup() {
@@ -63,7 +62,10 @@ public class ProcessingLwjglTest1
         frameRate(16); // fps
         textAlign(LEFT, TOP);
         ellipseMode(CENTER);
-        frame.setTitle("Test Swing with Processing!!");
+        surface.setTitle("Test Swing with Processing!!");
+        surface.setSize(1000, 800);
+        surface.setLocation(0, 0);
+
         map = new UnfoldingMap(this);
 
         String mapStyle = "https://api.mapbox.com/styles/v1/pacemaker-yc/ck4gqnid305z61cp1dtvmqh5y/tiles/512/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoicGFjZW1ha2VyLXljIiwiYSI6ImNrNGdxazl1aTBsNDAzZW41MDhldmQyancifQ.WPAckWszPCEHWlyNmJfY0A";
@@ -130,7 +132,7 @@ public class ProcessingLwjglTest1
 
     @Override
     public void draw() {
-
+        drawMap();
         //--
         //-- ** receving request from swing window
         if (psThisAddButtonWaiting) {
@@ -253,6 +255,7 @@ public class ProcessingLwjglTest1
             checkLevel = map.getZoomLevel();
             checkCenter = map.getCenter();
 //            loop();
+
         }
 
         if (!totalLoad) {
@@ -275,51 +278,6 @@ public class ProcessingLwjglTest1
 //* *** *** *** *** ***
 //- --- --- ---
 
-    public void fsComboDialog() {
-        String lpSelected = (String) JOptionPane.showInputDialog(frame, "how much cube youd like to add per click", "Adding mode setting Dialog",
-                JOptionPane.PLAIN_MESSAGE, null, pbAddingComboModel, pbAddingComboModel[pbAddingAmount - 1]);
-        if (lpSelected == null) {
-            return;
-        }
-        if (lpSelected.equals(pbAddingComboModel[0])) {
-            pbAddingAmount = 1;
-        }//...ALL IS NO SAFE AND CLEAN BUT ANYWAY!!
-        if (lpSelected.equals(pbAddingComboModel[1])) {
-            pbAddingAmount = 2;
-        }
-        if (lpSelected.equals(pbAddingComboModel[2])) {
-            pbAddingAmount = 3;
-        }
-    }//+++
-
-    public void fsSetFileNameByInputDialog() {
-        String lpInputed = (String) JOptionPane.showInputDialog(frame, "Replace current file name:", "File Name Input Dialog",
-                1, null, null, pbImageFileName);
-        if (lpInputed != null) {
-            if (!lpInputed.isEmpty()) {
-                pbImageFileName = lpInputed;
-            }
-        }
-    }//+++
-
-    public void fsMessageDialog() {
-        JOptionPane.showMessageDialog(frame, psMessageDialogCaster);
-    }
-
-    public void fsGetPathByFileChooser() {
-        final JFileChooser lpChooser = new JFileChooser();
-        lpChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        int lpChooserFlag = lpChooser.showOpenDialog(frame);
-        if (lpChooserFlag == JFileChooser.APPROVE_OPTION) {
-            File lpFile = lpChooser.getSelectedFile();
-            EcElement lpElement = pbTheElementList.get(4);//...THIS IS NO SAFE AND CLEAN BUT ANYWAY!!
-            pbImagePath = lpFile.toString();
-            ((EcTextBox) lpElement).ccSetText(pbImagePath);
-        } else {
-            println("--again, this should be shown nowhere cuz we dont need a cancel noice");
-        }
-        //--
-    }//+++
 
     private void fsCreateSwingWindow() {
         //-- ** presetting
@@ -422,38 +380,43 @@ public class ProcessingLwjglTest1
         //--
     }//+++
 
+    private JFrame trajFrame = new JFrame("traj");
+
     private void windowLayer() {
-        JFrame trajFrame = new JFrame("traj");
         trajFrame.setSize(1000, 800);
         trajFrame.setResizable(false);
         trajFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         trajFrame.setLayout(new BorderLayout());
-        GLData data = new GLData();
-        data.samples = 4;
-        data.swapInterval = 0;
-//        AWTGLCanvas canvas;
-        initCanvas(data);
 
+//        AWTGLCanvas canvas;
+
+        initCanvas();
         trajFrame.add(canvas, BorderLayout.CENTER);
 
         trajFrame.setVisible(false);
 
         trajFrame.setUndecorated(true);
-        trajFrame.setOpacity(0.5f);
+        trajFrame.setOpacity(0.7f);
 
         trajFrame.setVisible(true);
         trajFrame.setAlwaysOnTop(true);
-        trajFrame.transferFocus();
+        trajFrame.setLocation(3, 26);
+//        trajFrame.transferFocus();
 
-        Runnable renderLoop = new Runnable() {
+        new Thread() {
+            @Override
             public void run() {
-                if (!canvas.isValid())
-                    return;
-                canvas.render();
-                SwingUtilities.invokeLater(this);
+                Runnable renderLoop = new Runnable() {
+                    public void run() {
+                        if (!canvas.isValid())
+                            return;
+                        canvas.render();
+                        SwingUtilities.invokeLater(this);
+                    }
+                };
+                SwingUtilities.invokeLater(renderLoop);
             }
-        };
-        SwingUtilities.invokeLater(renderLoop);
+        }.start();
     }
 
     private AWTGLCanvas canvas;
@@ -462,14 +425,14 @@ public class ProcessingLwjglTest1
         System.out.println(frame.getSize());
         System.out.println(frame.getX());
         frame.setLayout(new BorderLayout());
-        frame.setPreferredSize(new Dimension(1000, 600));
+//        frame.setPreferredSize(new Dimension(1000, 600));
         GLData data = new GLData();
         data.samples = 4;
         data.swapInterval = 0;
-        initCanvas(data);
+        initCanvas();
         frame.add(canvas, BorderLayout.CENTER);
         frame.setBackground(Color.BLUE);
-        frame.setSize(500, 400);
+//        frame.setSize(500, 400);
         frame.setVisible(true);
         frame.setAlwaysOnTop(true);
         frame.setLocationRelativeTo(null);
@@ -486,7 +449,10 @@ public class ProcessingLwjglTest1
 
     }
 
-    private void initCanvas(GLData data) {
+    private void initCanvas() {
+        GLData data = new GLData();
+        data.samples = 4;
+        data.swapInterval = 0;
         canvas = new AWTGLCanvas(data) {
             @Override
             public void initGL() {
@@ -498,22 +464,18 @@ public class ProcessingLwjglTest1
             public void paintGL() {
                 int w = getWidth();
                 int h = getHeight();
-                float aspect = (float) w / h;
-                double now = System.currentTimeMillis() * 0.001;
-                float width = (float) Math.abs(Math.sin(now * 0.3));
                 glClear(GL_COLOR_BUFFER_BIT);
                 glViewport(0, 0, w, h);
-                glBegin(GL_LINES);
-                glColor3f(1.0f, 0.99f, 0.0f);
-                glVertex2f(-0.75f * width / aspect, 0.0f);
+                glBegin(GL_LINE_STRIP);
+                glColor3f(1.0f, 0.99f, 0.0f);//color
+                glVertex2f(-0.75f, 0.0f);
                 glVertex2f(0, -0.75f);
-                glVertex2f(+0.75f * width / aspect, 0);
+                glVertex2f(+0.75f, 0);
                 glVertex2f(0, +0.75f);
                 glEnd();
                 swapBuffers();
             }
         };
-
 
 
     }
@@ -592,7 +554,6 @@ public class ProcessingLwjglTest1
         }
     }//+++
 
-
     class EcTextBox extends EcElement {
         String cmText;
         String cmBoxText;
@@ -642,7 +603,6 @@ public class ProcessingLwjglTest1
         }
         //--
     }//+++
-
 
     public static void main(String[] args) {
         String title = "ProcessingLwjglTest1";
