@@ -13,5 +13,9 @@ public class Region {
         this.right_btm = rb;
     }
 
+    public void clear() {
+        left_top = right_btm = null;
+    }
+
 
 }

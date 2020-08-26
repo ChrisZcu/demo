@@ -8,6 +8,7 @@ import de.fhpotsdam.unfolding.utils.ScreenPosition;
 import draw.CanvasRun;
 import javafx.geometry.Pos;
 import model.Position;
+import model.Region;
 import model.Trajectory;
 import org.lwjgl.opengl.awt.AWTGLCanvas;
 import org.lwjgl.opengl.awt.GLData;
@@ -18,10 +19,7 @@ import util.SharedObject;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -50,6 +48,10 @@ public class demo1 extends PApplet {
     private boolean totalLoad = false;
     private int checkLevel = -1;
     private Location checkCenter = new Location(-1, -1);
+
+    private Region lastClickRegion = new Region();
+    private Position mouseClick;
+    boolean mousePressed;
 
     //lwjgl
     private AWTGLCanvas canvas;
@@ -102,18 +104,61 @@ public class demo1 extends PApplet {
 
     @Override
     public void draw() {
+        if (mousePressed)
+            new Thread() {
+                @Override
+                public void run() {
+                    // init the region if finished
+                    if (lastClickRegion.left_top == null) {
+                        lastClickRegion.left_top = mouseClick;
+                    } else {
+                        Position l_t = lastClickRegion.left_top;
+                        if (l_t.x < mouseClick.x) {//left
+                            if (l_t.y < mouseClick.y) {//up
+                                lastClickRegion.right_btm = mouseClick;
+                            } else {//left_down
+                                Position left_top = new Position(l_t.x, mouseClick.y);
+                                Position right_btm = new Position(mouseClick.x, l_t.y);
+                                lastClickRegion = new Region(left_top, right_btm);
+                            }
+                        } else {//right
+                            if (l_t.y < mouseClick.y) {//up
+                                Position left_top = new Position(mouseClick.x, l_t.y);
+                                Position right_btm = new Position(l_t.x, mouseClick.y);
+                                lastClickRegion = new Region(left_top, right_btm);
+                            } else {
+                                lastClickRegion = new Region(mouseClick, l_t);
+                            }
+                        }
+                    }
+                }
+            }.start();
         drawMap();
-        //TODO add region selection
         if (drawOrigion) {
+            SharedObject.getInstance().initRA(lastClickRegion);
+            lastClickRegion = new Region();
             drawOrigion = false;
         } else if (drawDestination) {
+            SharedObject.getInstance().initRD(lastClickRegion);
+            lastClickRegion = new Region();
             drawDestination = false;
         } else if (drawWayPoint) {
+            SharedObject.getInstance().initRW(lastClickRegion);
+            lastClickRegion = new Region();
             drawWayPoint = false;
         } else if (drawDone) {
             drawDone = false;
+            //TODO region alg
             trajLayer();
         }
+
+    }
+
+    @Override
+    public void mousePressed() {
+        System.out.println("mouse!!!!");
+        mousePressed = true;
+        mouseClick = new Position(mouseX, mouseY);
     }
 
     private void drawMap() {
@@ -121,8 +166,6 @@ public class demo1 extends PApplet {
             totalLoad = false;
             checkLevel = map.getZoomLevel();
             checkCenter = map.getCenter();
-//            loop();
-
         }
 
         if (!totalLoad) {
@@ -137,6 +180,11 @@ public class demo1 extends PApplet {
             }
             map.draw();
         }
+    }
+
+    private void drawRegion() {
+
+
     }
 
     private ArrayList<ArrayList<ScreenPosition>> GPS2ScreenLoc(ArrayList<Integer> trajIdList) {
@@ -205,6 +253,16 @@ public class demo1 extends PApplet {
         };
         finishButton.addActionListener(finishButtonActionListen);
 
+        // clear all regions
+        JButton clearRegionButton = new JButton("Clear All Regions");
+        ActionListener clearRegionActionListen = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SharedObject.getInstance().clearRegion();
+            }
+        };
+        clearRegionButton.addActionListener(clearRegionActionListen);
+
         //** exit
         JButton exitButton = new JButton("Exit");
         ActionListener exitButtonActionListen = new ActionListener() {
@@ -224,6 +282,7 @@ public class demo1 extends PApplet {
         panel.add(dButton);
         panel.add(wButton);
         panel.add(finishButton);
+        panel.add(clearRegionButton);
         panel.add(exitButton);
 
         //设置窗口属性
@@ -243,7 +302,7 @@ public class demo1 extends PApplet {
         controlWindow.setVisible(true);
     }
 
-    Thread td;
+    //    Thread td;
     boolean stopRender = false;
 
     private void trajLayer() {
@@ -252,8 +311,8 @@ public class demo1 extends PApplet {
         trajFrame.setResizable(false);
         trajFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        initCanvas();
-        trajFrame.add(canvas);
+//        initCanvas();
+//        trajFrame.add(canvas);
         trajFrame.setVisible(false);
 
         trajFrame.setUndecorated(true);
@@ -263,31 +322,73 @@ public class demo1 extends PApplet {
         trajFrame.setAlwaysOnTop(true);
         trajFrame.setLocation(3, 26);
 
+        //监听鼠标点击事件
+        trajFrame.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int c = e.getButton();
+                if (c == MouseEvent.BUTTON1) {//左键
+                    mousePressed = true;
+                    mouseClick = new Position(mouseX, mouseY);
+                    System.out.println("111111111");
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+        });
+
+        // 监听滚轮
+        trajFrame.addMouseWheelListener(new MouseWheelListener() {
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                System.out.println(222222);
+                trajFrame.dispose();
+            }
+        });
         controlWindow.setAlwaysOnTop(true);
 
         // 渲染
 
-//        new Thread() {
-//            @Override
-//            public void run() {
-//                Runnable renderLoop = new Runnable() {
-//                    public void run() {
-//                        if (!canvas.isValid())
-//                            return;
-//
-//                        canvas.render();
-//                        SwingUtilities.invokeLater(this);
-//                    }
-//                };
-//                SwingUtilities.invokeLater(renderLoop);
-//            }
-//        }.start();
+        new Thread() {
+            @Override
+            public void run() {
+                Runnable renderLoop = new Runnable() {
+                    public void run() {
+                        if (canvas == null || !canvas.isValid())
+                            return;
 
-        td = new CanvasRun(canvas);
-        td.start();
-        SwingUtilities.invokeLater(td);
+                        canvas.render();
+                        SwingUtilities.invokeLater(this);
+                    }
+                };
+                SwingUtilities.invokeLater(renderLoop);
+            }
+        }.start();
+
+//        td = new CanvasRun(canvas);
+//        td.start();
+//        SwingUtilities.invokeLater(td);
     }
 
+    /*
     private void stopRender(boolean stopRender) {
         System.out.println(stopRender);
         if (stopRender) {
@@ -295,8 +396,8 @@ public class demo1 extends PApplet {
             td.interrupt();
         }
     }
-
-    private void initCanvas() {
+*/
+    private void initCanvas(ArrayList<Integer> trajIdList) {
         /*
         try {
             BufferedReader reader = new BufferedReader(new FileReader("data/vfgs_0.01_50.txt"));
@@ -361,8 +462,7 @@ public class demo1 extends PApplet {
 
             @Override
             public void paintGL() {
-                stopRender(stopRender);
-                System.out.println(1);
+//                stopRender(stopRender);
                 /*
 
                 int w = 1000;
@@ -385,7 +485,6 @@ public class demo1 extends PApplet {
                     swapBuffers();
                 }
                 */
-                System.out.println(2);
                 stopRender = true;
             }
         };

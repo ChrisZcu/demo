@@ -15,7 +15,6 @@ public class CanvasRun extends Thread {
     public void run() {
         if (!canvas.isValid())
             return;
-
         canvas.render();
         SwingUtilities.invokeLater(this);
 
