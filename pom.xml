@@ -33,6 +33,32 @@
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.lwjglx/lwjgl3-awt -->
+        <dependency>
+            <groupId>org.lwjglx</groupId>
+            <artifactId>lwjgl3-awt</artifactId>
+            <version>0.1.5</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.lwjgl/lwjgl -->
+        <!--        <dependency>-->
+        <!--            <groupId>org.lwjgl</groupId>-->
+        <!--            <artifactId>lwjgl</artifactId>-->
+        <!--            <version>3.2.3</version>-->
+        <!--        </dependency>-->
+        <!-- https://mvnrepository.com/artifact/org.slick2d/slick2d-core -->
+        <!-- https://mvnrepository.com/artifact/org.lwjgl.lwjgl/lwjgl -->
+        <dependency>
+            <groupId>org.lwjgl.lwjgl</groupId>
+            <artifactId>lwjgl</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slick2d</groupId>
+            <artifactId>slick2d-core</artifactId>
+            <version>1.0.2</version>
+        </dependency>
 
     </dependencies>
 

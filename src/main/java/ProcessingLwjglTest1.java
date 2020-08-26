@@ -1,13 +1,14 @@
+import com.sun.awt.AWTUtilities;
 import de.fhpotsdam.unfolding.UnfoldingMap;
-import de.fhpotsdam.unfolding.events.EventDispatcher;
 import de.fhpotsdam.unfolding.geo.Location;
 import de.fhpotsdam.unfolding.providers.MapBox;
 import de.fhpotsdam.unfolding.utils.MapUtils;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.awt.AWTGLCanvas;
+import org.lwjgl.opengl.awt.GLData;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
-import processing.opengl.PGL;
-import processing.opengl.PGraphics2D;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -15,8 +16,12 @@ import javax.swing.*;
 import java.io.File;
 import java.util.ArrayList;
 
+import static org.lwjgl.opengl.GL.createCapabilities;
+import static org.lwjgl.opengl.GL11.*;
 
-public class ProcessingSwingTest1 extends PApplet {
+
+public class ProcessingLwjglTest1
+        extends PApplet {
     private static JWindow psThatSettingWindow;
     private boolean psFrameVisibility = false;
     private boolean psThisAddButtonWaiting = false;
@@ -59,7 +64,6 @@ public class ProcessingSwingTest1 extends PApplet {
         textAlign(LEFT, TOP);
         ellipseMode(CENTER);
         frame.setTitle("Test Swing with Processing!!");
-
         map = new UnfoldingMap(this);
 
         String mapStyle = "https://api.mapbox.com/styles/v1/pacemaker-yc/ck4gqnid305z61cp1dtvmqh5y/tiles/512/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoicGFjZW1ha2VyLXljIiwiYSI6ImNrNGdxazl1aTBsNDAzZW41MDhldmQyancifQ.WPAckWszPCEHWlyNmJfY0A";
@@ -126,28 +130,9 @@ public class ProcessingSwingTest1 extends PApplet {
 
     @Override
     public void draw() {
-        if (checkLevel != map.getZoomLevel() || !checkCenter.equals(map.getCenter())) {
-            totalLoad = false;
-            checkLevel = map.getZoomLevel();
-            checkCenter = map.getCenter();
-//            loop();
-        }
 
-        if (!totalLoad) {
-            if (!map.allTilesLoaded()) {
-                if (mapImage == null) {
-                    mapImage = map.mapDisplay.getInnerPG().get();
-                }
-                image(mapImage, 500, 40);
-            } else {
-                totalLoad = true;
-            }
-            map.draw();
-        }
         //--
         //-- ** receving request from swing window
-
-
         if (psThisAddButtonWaiting) {
             for (int i = 0; i < pbAddingAmount; i++) {
                 pbTheCubeList.add(new PVector(random(width), random(height)));
@@ -188,12 +173,21 @@ public class ProcessingSwingTest1 extends PApplet {
         //--
     }//+++
 
+
     @Override
     public void keyPressed() {
         switch (key) {
             //--
             case 'q':
                 fsPover();
+            case 'w':
+                System.out.println(key);
+                creatAwtLwjglWindow();
+                break;
+            case 'e':
+                System.out.println(key);
+                windowLayer();
+                break;
             default:
                 break;
             //--
@@ -250,6 +244,29 @@ public class ProcessingSwingTest1 extends PApplet {
     }//+++
 
 //< <<< <<< <<< <<< <<< Overrided
+
+
+    //draw map
+    private void drawMap() {
+        if (checkLevel != map.getZoomLevel() || !checkCenter.equals(map.getCenter())) {
+            totalLoad = false;
+            checkLevel = map.getZoomLevel();
+            checkCenter = map.getCenter();
+//            loop();
+        }
+
+        if (!totalLoad) {
+            if (!map.allTilesLoaded()) {
+                if (mapImage == null) {
+                    mapImage = map.mapDisplay.getInnerPG().get();
+                }
+                image(mapImage, 500, 40);
+            } else {
+                totalLoad = true;
+            }
+            map.draw();
+        }
+    }
 
 //* *** *** *** *** ***
 //*
@@ -405,6 +422,102 @@ public class ProcessingSwingTest1 extends PApplet {
         //--
     }//+++
 
+    private void windowLayer() {
+        JFrame trajFrame = new JFrame("traj");
+        trajFrame.setSize(1000, 800);
+        trajFrame.setResizable(false);
+        trajFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        trajFrame.setLayout(new BorderLayout());
+        GLData data = new GLData();
+        data.samples = 4;
+        data.swapInterval = 0;
+//        AWTGLCanvas canvas;
+        initCanvas(data);
+
+        trajFrame.add(canvas, BorderLayout.CENTER);
+
+        trajFrame.setVisible(false);
+
+        trajFrame.setUndecorated(true);
+        trajFrame.setOpacity(0.5f);
+
+        trajFrame.setVisible(true);
+        trajFrame.setAlwaysOnTop(true);
+        trajFrame.transferFocus();
+
+        Runnable renderLoop = new Runnable() {
+            public void run() {
+                if (!canvas.isValid())
+                    return;
+                canvas.render();
+                SwingUtilities.invokeLater(this);
+            }
+        };
+        SwingUtilities.invokeLater(renderLoop);
+    }
+
+    private AWTGLCanvas canvas;
+
+    private void creatAwtLwjglWindow() {
+        System.out.println(frame.getSize());
+        System.out.println(frame.getX());
+        frame.setLayout(new BorderLayout());
+        frame.setPreferredSize(new Dimension(1000, 600));
+        GLData data = new GLData();
+        data.samples = 4;
+        data.swapInterval = 0;
+        initCanvas(data);
+        frame.add(canvas, BorderLayout.CENTER);
+        frame.setBackground(Color.BLUE);
+        frame.setSize(500, 400);
+        frame.setVisible(true);
+        frame.setAlwaysOnTop(true);
+        frame.setLocationRelativeTo(null);
+
+        Runnable renderLoop = new Runnable() {
+            public void run() {
+                if (!canvas.isValid())
+                    return;
+                canvas.render();
+                SwingUtilities.invokeLater(this);
+            }
+        };
+        SwingUtilities.invokeLater(renderLoop);
+
+    }
+
+    private void initCanvas(GLData data) {
+        canvas = new AWTGLCanvas(data) {
+            @Override
+            public void initGL() {
+                createCapabilities();
+                glClearColor(0.3f, 0.4f, 0.5f, 1);
+            }
+
+            @Override
+            public void paintGL() {
+                int w = getWidth();
+                int h = getHeight();
+                float aspect = (float) w / h;
+                double now = System.currentTimeMillis() * 0.001;
+                float width = (float) Math.abs(Math.sin(now * 0.3));
+                glClear(GL_COLOR_BUFFER_BIT);
+                glViewport(0, 0, w, h);
+                glBegin(GL_LINES);
+                glColor3f(1.0f, 0.99f, 0.0f);
+                glVertex2f(-0.75f * width / aspect, 0.0f);
+                glVertex2f(0, -0.75f);
+                glVertex2f(+0.75f * width / aspect, 0);
+                glVertex2f(0, +0.75f);
+                glEnd();
+                swapBuffers();
+            }
+        };
+
+
+
+    }
+
     private void fsPover() {
         exit();
     }
@@ -532,7 +645,7 @@ public class ProcessingSwingTest1 extends PApplet {
 
 
     public static void main(String[] args) {
-        String title = "ProcessingSwingTest1";
+        String title = "ProcessingLwjglTest1";
         PApplet.main(new String[]{title});
     }
 }
