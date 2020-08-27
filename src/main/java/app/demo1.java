@@ -14,7 +14,10 @@ import org.lwjgl.opengl.awt.AWTGLCanvas;
 import org.lwjgl.opengl.awt.GLData;
 import processing.core.PApplet;
 import processing.core.PImage;
+import select.SelectHandle;
+import util.COLOR;
 import util.PreProcess;
+import util.REGION;
 import util.SharedObject;
 
 import javax.swing.*;
@@ -25,9 +28,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 
 import static org.lwjgl.opengl.GL.createCapabilities;
 import static org.lwjgl.opengl.GL11.*;
+import static util.REGION.*;
+import static util.REGION.O_D;
 
 
 public class demo1 extends PApplet {
@@ -37,8 +43,10 @@ public class demo1 extends PApplet {
     private boolean drawDestination = false;
     private boolean drawWayPoint = false;
     private boolean drawDone = false;
-
-
+    private boolean mapChange = false;
+    private int THREADNUM = 10;
+    private String[][] trajIndexAry;
+    private ArrayList<Integer> trajShowIdList = new ArrayList<>();
     //map
     private UnfoldingMap map;
     private static final Location PORTO_CENTER = new Location(41.14, -8.639);//维度经度
@@ -79,16 +87,17 @@ public class demo1 extends PApplet {
         surface.setSize(1000, 800);
         surface.setLocation(0, 0);
 
+        trajIndexAry = new String[THREADNUM][];
+
+
         map = new UnfoldingMap(this);
-
         String mapStyle = "https://api.mapbox.com/styles/v1/pacemaker-yc/ck4gqnid305z61cp1dtvmqh5y/tiles/512/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoicGFjZW1ha2VyLXljIiwiYSI6ImNrNGdxazl1aTBsNDAzZW41MDhldmQyancifQ.WPAckWszPCEHWlyNmJfY0A";
-
         map = new UnfoldingMap(this, "CHI Demo", new MapBox.CustomMapBoxProvider(mapStyle));
         map.setZoomRange(1, 20);
-
         map.zoomAndPanTo(11, PRESENT);
         map.setBackgroundColor(255);
 
+        SharedObject.getInstance().initMap(map);
         MapUtils.createDefaultEventDispatcher(this, map);
 
         try {
@@ -104,7 +113,11 @@ public class demo1 extends PApplet {
 
     @Override
     public void draw() {
-        if (mousePressed)
+        drawMap();
+
+        if (mousePressed) {
+
+            System.out.println(mouseClick);
             new Thread() {
                 @Override
                 public void run() {
@@ -133,7 +146,8 @@ public class demo1 extends PApplet {
                     }
                 }
             }.start();
-        drawMap();
+            mousePressed = false;
+        }
         if (drawOrigion) {
             SharedObject.getInstance().initRA(lastClickRegion);
             lastClickRegion = new Region();
@@ -148,21 +162,22 @@ public class demo1 extends PApplet {
             drawWayPoint = false;
         } else if (drawDone) {
             drawDone = false;
-            //TODO region alg
-            trajLayer();
+            new Thread() {
+                @Override
+                public void run() {
+//                    selectRegionTraj();
+                    trajLayer();
+                }
+            }.start();
         }
-
+        drawRegion(COLOR.GREEN, SharedObject.getInstance().getRegionA());
+        drawRegion(COLOR.BLUE, SharedObject.getInstance().getRegionD());
     }
 
-    @Override
-    public void mousePressed() {
-        System.out.println("mouse!!!!");
-        mousePressed = true;
-        mouseClick = new Position(mouseX, mouseY);
-    }
-
+    // **draw
     private void drawMap() {
-        if (checkLevel != map.getZoomLevel() || !checkCenter.equals(map.getCenter())) {
+        mapChange = checkLevel != map.getZoomLevel() || !checkCenter.equals(map.getCenter());
+        if (mapChange) {
             totalLoad = false;
             checkLevel = map.getZoomLevel();
             checkCenter = map.getCenter();
@@ -182,11 +197,75 @@ public class demo1 extends PApplet {
         }
     }
 
-    private void drawRegion() {
-
-
+    private void drawRegion(COLOR color, Region r) {
+        if (r == null || r.left_top == null || r.right_btm == null)
+            return;
+        Position l_t = r.left_top;
+        Position r_b = r.right_btm;
+        strokeWeight(3);
+        stroke(SharedObject.getInstance().getColors()[color.getValue()].getRGB());
+//        int length = Math.abs(l_t.x - r_b.x);
+//        int high = Math.abs(l_t.y - r_b.y);
+//        rect(l_t.x, l_t.y, length, high);
+        beginShape();
+        vertex(l_t.x, l_t.y);
+        vertex(r_b.x, l_t.y);
+        vertex(r_b.x, r_b.y);
+        vertex(l_t.x, r_b.y);
+        vertex(l_t.x, l_t.y);
+        endShape();
     }
 
+    // ** region handle
+    private void selectRegionTraj() {
+        long start_time = System.currentTimeMillis();
+
+        ExecutorService threadPool;
+        threadPool = new ThreadPoolExecutor(THREADNUM, THREADNUM, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingDeque<Runnable>());
+
+        SharedObject instance = SharedObject.getInstance();
+        REGION inter;
+        if (instance.getRegionA() != null)
+            inter = ALLIN;
+        else if (instance.getRegionW() != null) {
+            if (instance.getRegionO() != null)//odw
+                inter = O_D_W;
+            else inter = WAY_POINT;
+        } else inter = O_D;
+
+        List<Trajectory> total_traj = SharedObject.getInstance().getTotalTraj();
+
+        int thread_list_size = total_traj.size() / THREADNUM;
+        try {
+            for (int i = 0; i < THREADNUM - 1; i++) {
+                SelectHandle sht = new SelectHandle(inter, total_traj.subList(i * thread_list_size, (i + 1) * thread_list_size));
+                trajIndexAry[i] = threadPool.submit(sht).get().toString().split(",");
+            }
+            trajIndexAry[9] = threadPool.submit(new SelectHandle(inter, total_traj.subList(9 * thread_list_size, total_traj.size()))).get().toString().split(",");
+            threadPool.shutdown();
+            try {
+                threadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                System.err.println(e);
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            System.err.println(e);
+        }
+        System.out.println("time: " + (System.currentTimeMillis() - start_time));
+        System.out.println("ALL DONE");
+        int totalTrajNum = 0;
+        for (String[] indexList : trajIndexAry) {
+            for (String id : indexList) {
+                if (!id.equals("")) {
+                    trajShowIdList.add((Integer.parseInt(id)));
+                    totalTrajNum++;
+                }
+            }
+        }
+        System.out.println("total traj num: " + totalTrajNum);
+    }
+
+    //GPS2Screen
     private ArrayList<ArrayList<ScreenPosition>> GPS2ScreenLoc(ArrayList<Integer> trajIdList) {
         List<Trajectory> trajTotal = SharedObject.getInstance().getTotalTraj();
         ArrayList<ArrayList<ScreenPosition>> res = new ArrayList<>();
@@ -303,9 +382,11 @@ public class demo1 extends PApplet {
     }
 
     //    Thread td;
-    boolean stopRender = false;
 
     private void trajLayer() {
+        if (trajFrame != null)
+            trajFrame.dispose();
+        System.out.println(111111);
         trajFrame = new JFrame("traj");
         trajFrame.setSize(1000, 800);
         trajFrame.setResizable(false);
@@ -320,7 +401,7 @@ public class demo1 extends PApplet {
 
         trajFrame.setVisible(true);
         trajFrame.setAlwaysOnTop(true);
-        trajFrame.setLocation(3, 26);
+        trajFrame.setLocation(frame.getLocation().x + 3, frame.getLocation().y + 26);
 
         //监听鼠标点击事件
         trajFrame.addMouseListener(new MouseListener() {
@@ -329,7 +410,7 @@ public class demo1 extends PApplet {
                 int c = e.getButton();
                 if (c == MouseEvent.BUTTON1) {//左键
                     mousePressed = true;
-                    mouseClick = new Position(mouseX, mouseY);
+                    mouseClick = new Position(e.getX(), e.getY());
                     System.out.println("111111111");
                 }
             }
@@ -397,7 +478,7 @@ public class demo1 extends PApplet {
         }
     }
 */
-    private void initCanvas(ArrayList<Integer> trajIdList) {
+    private void initCanvas() {
         /*
         try {
             BufferedReader reader = new BufferedReader(new FileReader("data/vfgs_0.01_50.txt"));
@@ -485,7 +566,6 @@ public class demo1 extends PApplet {
                     swapBuffers();
                 }
                 */
-                stopRender = true;
             }
         };
 
