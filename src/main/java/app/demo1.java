@@ -67,7 +67,7 @@ public class demo1 extends PApplet {
     // pre-process for data
     private static void preProcess() {
         // init shared object total trajectory list
-        String totalTrajFilePath = "data/portoScore.txt";
+        String totalTrajFilePath = "D:\\杂物\\QQ\\1164806828\\FileRecv\\partPortScore\\partPortScore.txt";
         List<Trajectory> trajTotal = new ArrayList<>();
         PreProcess.totalListInit(trajTotal, totalTrajFilePath);
 
@@ -382,26 +382,33 @@ public class demo1 extends PApplet {
     }
 
     //    Thread td;
+    private boolean stopRender = false;
+
+    private void addFrameDir() {
+
+    }
 
     private void trajLayer() {
         if (trajFrame != null)
             trajFrame.dispose();
-        System.out.println(111111);
         trajFrame = new JFrame("traj");
         trajFrame.setSize(1000, 800);
         trajFrame.setResizable(false);
         trajFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-//        initCanvas();
-//        trajFrame.add(canvas);
+        initCanvas();
+        trajFrame.add(canvas);
+
         trajFrame.setVisible(false);
 
         trajFrame.setUndecorated(true);
-        trajFrame.setOpacity(0.7f);
-
+        trajFrame.setOpacity(0.5f);
+//        trajFrame.setBackground(new Color(0,0,0,0));
         trajFrame.setVisible(true);
+
         trajFrame.setAlwaysOnTop(true);
         trajFrame.setLocation(frame.getLocation().x + 3, frame.getLocation().y + 26);
+
 
         //监听鼠标点击事件
         trajFrame.addMouseListener(new MouseListener() {
@@ -453,7 +460,10 @@ public class demo1 extends PApplet {
             public void run() {
                 Runnable renderLoop = new Runnable() {
                     public void run() {
-                        if (canvas == null || !canvas.isValid())
+                        System.out.println(canvas == null);
+                        System.out.println(!canvas.isValid());
+                        System.out.println(stopRender);
+                        if (canvas == null || !canvas.isValid() || stopRender)
                             return;
 
                         canvas.render();
@@ -495,7 +505,7 @@ public class demo1 extends PApplet {
             System.err.println(e);
         }
 */
-/*
+        /*
         ArrayList<Integer> trajShowIdList = new ArrayList<>();
         for (int i = 0; i < 200000; i++) {
             trajShowIdList.add(i);
@@ -516,7 +526,6 @@ public class demo1 extends PApplet {
             }
         }
         */
-
         /*
 
         //debug for coordinate exchange
@@ -531,6 +540,16 @@ public class demo1 extends PApplet {
             }
         }
 */
+        SharedObject so = SharedObject.getInstance();
+
+        for (int i = 0; i < so.getTotalTraj().size(); i++) {
+            trajShowIdList.add(i);
+        }
+
+//        trajShowIdList.add(0);
+
+        final ArrayList<ArrayList<ScreenPosition>> posList = GPS2ScreenLoc(trajShowIdList);
+
         GLData data = new GLData();
         data.samples = 4;
         data.swapInterval = 0;
@@ -538,13 +557,13 @@ public class demo1 extends PApplet {
             @Override
             public void initGL() {
                 createCapabilities();
-                glClearColor(0.3f, 0.4f, 0.5f, 1);
+//                glClearColor(0.3f, 0.4f, 0.5f, 1);
             }
 
             @Override
             public void paintGL() {
 //                stopRender(stopRender);
-                /*
+                System.out.println(11);
 
                 int w = 1000;
                 int h = 800;
@@ -565,7 +584,9 @@ public class demo1 extends PApplet {
                     glEnd();
                     swapBuffers();
                 }
-                */
+
+                System.out.println(22);
+                stopRender = true;
             }
         };
 
@@ -642,7 +663,7 @@ public class demo1 extends PApplet {
     }//+++
 
     public static void main(String[] args) {
-//        preProcess();
+        preProcess();
 
         String title = "app.demo1";
         PApplet.main(new String[]{title});
