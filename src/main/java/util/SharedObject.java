@@ -16,6 +16,7 @@ public class SharedObject {
     private static SharedObject instance = new SharedObject();
 
     private SharedObject() {
+        regionWList = new ArrayList<>();
     }
 
     public static SharedObject getInstance() {
@@ -29,6 +30,7 @@ public class SharedObject {
     private static Region regionO = null;
     private static Region regionD = null;
     private static Region regionW = null;
+    private static ArrayList<Region> regionWList;
 
     /**
      * trajectory info
@@ -52,6 +54,7 @@ public class SharedObject {
 
     public void clearRegion() {
         regionA = regionD = regionO = regionW = null;
+        regionWList.clear();
     }
 
     public void initTotalRegion(List tt, Region r_a, Region r_o, Region r_d, Region r_w) {
@@ -67,6 +70,10 @@ public class SharedObject {
         regionO = r_o;
         regionD = r_d;
         regionW = r_w;
+    }
+
+    public void addRegionW(Region r) {
+        regionWList.add(r);
     }
 
     public void initTrajList(List tt) {
@@ -153,6 +160,9 @@ public class SharedObject {
         return trajSortByY;
     }
 
+    public ArrayList<Region> getRegionWList() {
+        return regionWList;
+    }
 }
 
 

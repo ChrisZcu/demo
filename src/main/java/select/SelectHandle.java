@@ -20,27 +20,28 @@ public class SelectHandle implements Callable {
         this.inter = inter;
         this.traj_list = traj_list;
     }
-/*
-    @Override
-    public void run() {
-        SharedObject instance = SharedObject.getInstance();
-        switch (inter) {
-            case ALLIN:
-                res = getAllIn(traj_list, instance.getRegion_a());
-                break;
-            case O_D:
-                res = getODTraj(traj_list, instance.getRegion_o(), instance.getRegion_d());
-                break;
-            case O_D_W:
-                res = getODWTraj(traj_list, instance.getRegion_o(), instance.getRegion_d(), instance.getRegion_w());
-                break;
-            case WAY_POINT:
-                res = getWayPointTraj(traj_list, instance.getRegion_w());
-                break;
+
+    /*
+        @Override
+        public void run() {
+            SharedObject instance = SharedObject.getInstance();
+            switch (inter) {
+                case ALLIN:
+                    res = getAllIn(traj_list, instance.getRegion_a());
+                    break;
+                case O_D:
+                    res = getODTraj(traj_list, instance.getRegion_o(), instance.getRegion_d());
+                    break;
+                case O_D_W:
+                    res = getODWTraj(traj_list, instance.getRegion_o(), instance.getRegion_d(), instance.getRegion_w());
+                    break;
+                case WAY_POINT:
+                    res = getWayPointTraj(traj_list, instance.getRegion_w());
+                    break;
+            }
+            System.out.println("into thread: res number = " + res.size());
         }
-        System.out.println("into thread: res number = " + res.size());
-    }
-*/
+    */
     @Override
     public Object call() throws Exception {
         SharedObject instance = SharedObject.getInstance();
@@ -52,13 +53,13 @@ public class SelectHandle implements Callable {
                 res = getODTraj(traj_list, instance.getRegionO(), instance.getRegionD());
                 break;
             case O_D_W:
-                res = getODWTraj(traj_list, instance.getRegionO(), instance.getRegionD(), instance.getRegionW());
+                res = getODWTraj(traj_list, instance.getRegionO(), instance.getRegionD(), instance.getRegionWList());
                 break;
             case WAY_POINT:
-                res = getWayPointTraj(traj_list, instance.getRegionW());
+                res = getWayPointTraj(traj_list, instance.getRegionWList());
                 break;
         }
         System.out.println("into thread: res number = " + res.size());
-        return StringUtils.join(res,",");
+        return StringUtils.join(res, ",");
     }
 }

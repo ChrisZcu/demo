@@ -7,6 +7,7 @@ import model.Region;
 import model.Trajectory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class RegionAlg {
@@ -21,36 +22,34 @@ public class RegionAlg {
         return res;
     }
 
-    public static List<Integer> getODWTraj(List<Trajectory> list, Region r_o, Region r_d, Region r_w) {
+    public static List<Integer> getODWTraj(List<Trajectory> list, Region r_o, Region r_d, ArrayList<Region> rWList) {
         List<Integer> res = new ArrayList<>();
 
         for (Trajectory traj : list) {
             if (inCheck(r_o, traj.points.get(0)) && inCheck(r_d, traj.points.get(traj.points.size() - 1)))
                 for (int i = 1; i < traj.points.size() - 1; i++) {
-                    if (inCheck(r_w, traj.points.get(i))) {
-                        res.add(traj.getTrajId());
-                        break;
-                    }
+                    //TODO add logic
                 }
         }
         return res;
     }
 
-    public static List<Integer> getWayPointTraj(List<Trajectory> list, Region r) {
+    public static List<Integer> getWayPointTraj(List<Trajectory> list, ArrayList<Region> r_list) {
         List<Integer> res = new ArrayList<>();
-
+        HashSet<Integer> resHash = new HashSet<>();
         for (Trajectory traj : list) {
             Location f_loc = traj.points.get(0);
             Location l_loc = traj.points.get(traj.points.size() - 1);
-
-            if (inCheck(r, f_loc) || inCheck(r, l_loc))
-                continue;
-
-            for (int i = 1; i < traj.points.size() - 1; i++) {
-                if (inCheck(r, traj.points.get(i))) {
-                    res.add(traj.getTrajId());
+            boolean exist = false;
+            for (Region r : r_list)
+                if (inCheck(r, f_loc) || inCheck(r, l_loc)) {
+                    exist = true;
                     break;
                 }
+
+            if (!exist)//首尾不存在
+            //TODO add logic
+            {
             }
         }
         return res;
