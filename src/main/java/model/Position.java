@@ -16,6 +16,10 @@ public class Position {
         this.y = y;
     }
 
+    public boolean equals(Position pos) {
+        return this.x == pos.x && this.y == pos.y;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {

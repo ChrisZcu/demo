@@ -4,6 +4,7 @@ import de.fhpotsdam.unfolding.UnfoldingMap;
 import de.fhpotsdam.unfolding.geo.Location;
 import de.fhpotsdam.unfolding.providers.MapBox;
 import de.fhpotsdam.unfolding.utils.MapUtils;
+import de.fhpotsdam.unfolding.utils.ScreenPosition;
 import model.Position;
 import model.Region;
 import model.Trajectory;
@@ -38,6 +39,10 @@ public class ProcessingDemo2 extends PApplet {
     private boolean selectDone = false;
     private boolean VFGS = false;
     private boolean mapChange = false;
+    private boolean mouseDragged = false;
+    private boolean mousePressed = false;
+    private boolean screenShot = false;
+
     private int THREADNUM = 10;
     private String[][] trajIndexAry;
     private ArrayList<Integer> trajShowIdList = new ArrayList<>();
@@ -52,12 +57,14 @@ public class ProcessingDemo2 extends PApplet {
     private Location checkCenter = new Location(-1, -1);
 
     private Region lastClickRegion = new Region();
+    private Region dragRegion = new Region();
+    private int regionId = -1;
+    private int totalRegionNum = 0;
     private Position mouseClick;
-    boolean mousePressed;
 
     private static void preProcess() {
         // init shared object total trajectory list
-        String totalTrajFilePath = "D:\\杂物\\QQ\\1164806828\\FileRecv\\partPortScore\\partPortScore.txt";
+        String totalTrajFilePath = "E:\\zcz\\dbgroup\\data\\Portugal\\GPS\\Porto20w.txt";
         List<Trajectory> trajTotal = new ArrayList<>();
         PreProcess.totalListInit(trajTotal, totalTrajFilePath);
 
@@ -69,10 +76,8 @@ public class ProcessingDemo2 extends PApplet {
     // map set
     @Override
     public void setup() {
-//        noStroke();
-//        frameRate(16); // fps
-//        textAlign(LEFT, TOP);
-//        ellipseMode(CENTER);
+        frameRate(16); // fps
+
         surface.setTitle("Processing with AWT");
         surface.setSize(1000, 800);
         surface.setLocation(0, 0);
@@ -80,7 +85,6 @@ public class ProcessingDemo2 extends PApplet {
         trajIndexAry = new String[THREADNUM][];
 
 
-        map = new UnfoldingMap(this);
         String mapStyle = "https://api.mapbox.com/styles/v1/pacemaker-yc/ck4gqnid305z61cp1dtvmqh5y/tiles/512/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoicGFjZW1ha2VyLXljIiwiYSI6ImNrNGdxazl1aTBsNDAzZW41MDhldmQyancifQ.WPAckWszPCEHWlyNmJfY0A";
         map = new UnfoldingMap(this, "CHI Demo", new MapBox.CustomMapBoxProvider(mapStyle));
         map.setZoomRange(1, 20);
@@ -105,7 +109,6 @@ public class ProcessingDemo2 extends PApplet {
     public void draw() {
         noFill();
         drawMap();
-
         if (mousePressed) {
             System.out.println(mouseClick);
             new Thread() {
@@ -139,14 +142,17 @@ public class ProcessingDemo2 extends PApplet {
             mousePressed = false;
         }
         if (drawOrigion) {
-            SharedObject.getInstance().initRA(lastClickRegion);
+            lastClickRegion.id = totalRegionNum++;
+            SharedObject.getInstance().initRO(lastClickRegion);
             lastClickRegion = new Region();
             drawOrigion = false;
         } else if (drawDestination) {
+            lastClickRegion.id = totalRegionNum++;
             SharedObject.getInstance().initRD(lastClickRegion);
             lastClickRegion = new Region();
             drawDestination = false;
         } else if (drawWayPoint) {
+            lastClickRegion.id = totalRegionNum++;
             SharedObject.getInstance().addRegionW(lastClickRegion);
             lastClickRegion = new Region();
             drawWayPoint = false;
@@ -154,7 +160,9 @@ public class ProcessingDemo2 extends PApplet {
             selectRegionTraj();
             selectDone = false;
         }
-        drawRegion(COLOR.GREEN, SharedObject.getInstance().getRegionA());
+        drawTraj();
+
+        drawRegion(COLOR.GREEN, SharedObject.getInstance().getRegionO());
         drawRegion(COLOR.BLUE, SharedObject.getInstance().getRegionD());
         for (Region r_w : SharedObject.getInstance().getRegionWList()) {
             drawRegion(COLOR.PINK, r_w);
@@ -164,7 +172,29 @@ public class ProcessingDemo2 extends PApplet {
     @Override
     public void mousePressed() {
         mouseClick = new Position(mouseX, mouseY);
-        mousePressed = true;
+        if (mouseButton == LEFT) {
+            mousePressed = true;
+            mouseDragged = true;
+        } else if (mouseButton == RIGHT) {
+            initClickRegion();
+            mouseDragged = false;
+            System.out.println(22);
+        }
+    }
+
+
+    private void initClickRegion() {
+        Region[] allSharedRegion = SharedObject.getInstance().getAllRegions();
+
+        for (Region r : allSharedRegion) {
+            if (r == null)
+                continue;
+            if (mouseClick.x >= r.left_top.x - 12 && mouseClick.x <= r.right_btm.x + 12
+                    && mouseClick.y >= r.left_top.y - 12 && mouseClick.y <= r.right_btm.y + 12) {
+                regionId = r.id;
+                break;
+            }
+        }
     }
 
     // **draw
@@ -193,25 +223,58 @@ public class ProcessingDemo2 extends PApplet {
     private void drawRegion(COLOR color, Region r) {
         if (r == null || r.left_top == null || r.right_btm == null)
             return;
+
         Position l_t = r.left_top;
         Position r_b = r.right_btm;
         stroke(SharedObject.getInstance().getColors()[color.getValue()].getRGB());
+
+        int length = Math.abs(l_t.x - r_b.x);
+        int high = Math.abs(l_t.y - r_b.y);
+
+        if (mouseDragged && r.id == regionId) {
+            r.left_top = new Position(mouseX, mouseY);
+            r.right_btm = new Position(mouseX + length, mouseY + high);
+        }
+        l_t = r.left_top;
+        r_b = r.right_btm;
+//        rect(l_t.x, l_t.y, length, high);
 
         strokeWeight(25);
         point(l_t.x, l_t.y);
 
         strokeWeight(3);
+        beginShape();
+        vertex(l_t.x, l_t.y);
+        vertex(r_b.x, l_t.y);
+        vertex(r_b.x, r_b.y);
+        vertex(l_t.x, r_b.y);
+        vertex(l_t.x, l_t.y);
+        endShape();
+    }
 
-        int length = Math.abs(l_t.x - r_b.x);
-        int high = Math.abs(l_t.y - r_b.y);
-        rect(l_t.x, l_t.y, length, high);
-//        beginShape();
-//        vertex(l_t.x, l_t.y);
-//        vertex(r_b.x, l_t.y);
-//        vertex(r_b.x, r_b.y);
-//        vertex(l_t.x, r_b.y);
-//        vertex(l_t.x, l_t.y);
-//        endShape();
+    private void drawTraj() {
+        stroke(255, 0, 0);
+        strokeWeight(1);
+        for (Integer e : trajShowIdList) {
+            Trajectory traj = SharedObject.getInstance().getTotalTraj().get(e);
+            beginShape();
+            for (Location loc : traj.points) {
+                ScreenPosition pos = map.getScreenPosition(loc);
+                vertex(pos.x, pos.y);
+            }
+            endShape();
+        }
+    }
+
+    //** screenshot
+    public void screenShot() {
+        new Thread() {
+            @Override
+            public void run() {
+                String shotPath = "data/screenshot/screenShot.png";
+                saveFrame(shotPath);
+            }
+        }.start();
     }
 
     // ** region handle
@@ -231,6 +294,7 @@ public class ProcessingDemo2 extends PApplet {
             else inter = WAY_POINT;
         } else inter = O_D;
 
+        System.out.println(inter);
         List<Trajectory> total_traj = SharedObject.getInstance().getTotalTraj();
 
         int thread_list_size = total_traj.size() / THREADNUM;
@@ -252,6 +316,7 @@ public class ProcessingDemo2 extends PApplet {
         System.out.println("time: " + (System.currentTimeMillis() - start_time));
         System.out.println("ALL DONE");
         int totalTrajNum = 0;
+        trajShowIdList.clear();
         for (String[] indexList : trajIndexAry) {
             for (String id : indexList) {
                 if (!id.equals("")) {
@@ -308,6 +373,10 @@ public class ProcessingDemo2 extends PApplet {
             @Override
             public void actionPerformed(ActionEvent e) {
                 fullData = true;
+                trajShowIdList.clear();
+                for (int i = 0; i < SharedObject.getInstance().getTotalTraj().size(); i++) {
+                    trajShowIdList.add(i);
+                }
             }
         };
         fullDataButton.addActionListener(fullDataButtonActionListen);
@@ -322,12 +391,26 @@ public class ProcessingDemo2 extends PApplet {
         };
         finishSelectButton.addActionListener(finishSelectButtonActionListen);
 
+        // ** screenShot
+        JButton screenShotButton = new JButton("ScreenShot");
+        ActionListener screenShotButtonActionListen = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                screenShot = true;
+                screenShot();
+            }
+        };
+        screenShotButton.addActionListener(screenShotButtonActionListen);
+
+
         // clear all regions
-        JButton clearRegionButton = new JButton("Clear All Regions");
+        JButton clearRegionButton = new JButton("ClearAllRegions");
         ActionListener clearRegionActionListen = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                System.out.println("clear all!");
                 SharedObject.getInstance().clearRegion();
+                totalLoad = false;
             }
         };
         clearRegionButton.addActionListener(clearRegionActionListen);
@@ -342,6 +425,15 @@ public class ProcessingDemo2 extends PApplet {
         };
         exitButton.addActionListener(exitButtonActionListen);
 
+        //** drag
+        JButton dragButton = new JButton("Drag");
+        ActionListener dragButtonActionListen = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                initClickRegion();
+            }
+        };
+        dragButton.addActionListener(dragButtonActionListen);
 
         //构建面板
         Container panel2 = controlWindow.getContentPane();
@@ -352,7 +444,9 @@ public class ProcessingDemo2 extends PApplet {
         panel.add(wButton);
         panel.add(finishSelectButton);
         panel.add(fullDataButton);
+        panel.add(screenShotButton);
         panel.add(clearRegionButton);
+        panel.add(dragButton);
         panel.add(exitButton);
 
         //设置窗口属性
@@ -374,7 +468,7 @@ public class ProcessingDemo2 extends PApplet {
 
 
     public static void main(String[] args) {
-
+        preProcess();
         String title = "app.ProcessingDemo2";
 
         PApplet.main(new String[]{title});

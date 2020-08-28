@@ -22,37 +22,67 @@ public class RegionAlg {
         return res;
     }
 
+    //and imp
     public static List<Integer> getODWTraj(List<Trajectory> list, Region r_o, Region r_d, ArrayList<Region> rWList) {
-        List<Integer> res = new ArrayList<>();
+        HashSet<Integer> resSet = new HashSet<>(list.size());
 
+        Region r = rWList.get(0);
         for (Trajectory traj : list) {
             if (inCheck(r_o, traj.points.get(0)) && inCheck(r_d, traj.points.get(traj.points.size() - 1)))
                 for (int i = 1; i < traj.points.size() - 1; i++) {
-                    //TODO add logic
+                    if (inCheck(r, traj.points.get(i))) {
+                        resSet.add(traj.getTrajId());
+                        break;
+                    }
                 }
         }
-        return res;
+        for (int i = 1; i < rWList.size(); i++) {
+            r = rWList.get(i);
+            HashSet<Integer> setTmp = new HashSet<>(resSet.size());
+            for (Trajectory traj : list) {
+                if (resSet.contains(traj.getTrajId())) {
+                    if (inCheck(r_o, traj.points.get(0)) && inCheck(r_d, traj.points.get(traj.points.size() - 1)))
+                        for (int j = 1; j < traj.points.size() - 1; j++) {
+                            if (inCheck(r, traj.points.get(j))) {
+                                setTmp.add(traj.getTrajId());
+                                break;
+                            }
+                        }
+                }
+            }
+            resSet = setTmp;
+        }
+        return new ArrayList<Integer>(resSet);
     }
 
-    public static List<Integer> getWayPointTraj(List<Trajectory> list, ArrayList<Region> r_list) {
-        List<Integer> res = new ArrayList<>();
-        HashSet<Integer> resHash = new HashSet<>();
+    public static List<Integer> getWayPointTraj(List<Trajectory> list, ArrayList<Region> rWList) {
+        HashSet<Integer> resSet = new HashSet<>(list.size());
+
+        Region r = rWList.get(0);
         for (Trajectory traj : list) {
-            Location f_loc = traj.points.get(0);
-            Location l_loc = traj.points.get(traj.points.size() - 1);
-            boolean exist = false;
-            for (Region r : r_list)
-                if (inCheck(r, f_loc) || inCheck(r, l_loc)) {
-                    exist = true;
+            for (int i = 1; i < traj.points.size() - 1; i++) {
+                if (inCheck(r, traj.points.get(i))) {
+                    resSet.add(traj.getTrajId());
                     break;
                 }
-
-            if (!exist)//首尾不存在
-            //TODO add logic
-            {
             }
         }
-        return res;
+        for (int i = 1; i < rWList.size(); i++) {
+            r = rWList.get(i);
+            HashSet<Integer> setTmp = new HashSet<>(resSet.size());
+            for (Trajectory traj : list) {
+                if (resSet.contains(traj.getTrajId())) {
+                    for (int j = 1; j < traj.points.size() - 1; j++) {
+                        if (inCheck(r, traj.points.get(j))) {
+                            setTmp.add(traj.getTrajId());
+                            break;
+                        }
+                    }
+                }
+            }
+            resSet = setTmp;
+        }
+        return new ArrayList<Integer>(resSet);
     }
 
 

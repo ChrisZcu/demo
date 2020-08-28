@@ -8,6 +8,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 import static util.COLOR.*;
 
@@ -35,11 +36,11 @@ public class SharedObject {
     /**
      * trajectory info
      */
-    private static List trajTotal;
+    private static List<Trajectory> trajTotal;
     private static HashSet<Integer> bgSet;
     private static List<ArrayList<Double>> trajSortByX;
     private static List<ArrayList<Double>> trajSortByY;
-
+    private static ArrayList<Region> allRegion;
     private static UnfoldingMap map;
 
     private Color[] colors = new Color[]{
@@ -120,6 +121,33 @@ public class SharedObject {
         return trajTotal;
     }
 
+    public List<Trajectory> getVFGSTraj() {
+        List<Trajectory> VFGSTraj = new ArrayList<>();
+        for (Integer e : bgSet)
+            VFGSTraj.add(trajTotal.get(e));
+        return VFGSTraj;
+    }
+
+    public List<Trajectory> getRandomTraj() {
+        List<Trajectory> ranTraj = new ArrayList<>();
+        Random ran = new Random(1);
+        for (int i = 0; i < trajTotal.size() * 0.01; i++) {
+            int r = ran.nextInt(trajTotal.size() - 1);
+            ranTraj.add(trajTotal.get(r));
+        }
+        return ranTraj;
+    }
+
+    public ArrayList<Integer> getRandomTrajId() {
+        ArrayList<Integer> ranTraj = new ArrayList<>();
+        Random ran = new Random(1);
+        for (int i = 0; i < trajTotal.size() * 0.01; i++) {
+            int r = ran.nextInt(trajTotal.size() - 1);
+            ranTraj.add(r);
+        }
+        return ranTraj;
+    }
+
     public Region getRegionA() {
         return regionA;
     }
@@ -137,7 +165,13 @@ public class SharedObject {
     }
 
     public Region[] getAllRegions() {
-        return new Region[]{regionA, regionO, regionD, regionW};
+        Region[] tmp = new Region[2 + regionWList.size()];
+        tmp[0] = regionO;
+        tmp[0] = regionD;
+        for (int i = 0; i < regionWList.size(); i++) {
+            tmp[i + 2] = regionWList.get(i);
+        }
+        return tmp;
     }
 
     public Color[] getColors() {
