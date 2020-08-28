@@ -105,7 +105,7 @@ public class ProcessingDemo3 extends PApplet {
     }
 
     public void settings() {
-        size(1000, 800, P2D);
+        size(1010, 810, P2D);
     }
 
     // map set
@@ -128,7 +128,7 @@ public class ProcessingDemo3 extends PApplet {
         mapOverview.setTweening(true);
 
         //**MapFullData, 右上
-        mapFullData = new UnfoldingMap(this, 500, 0, 500, 400, new MapBox.CustomMapBoxProvider(mapStyle));
+        mapFullData = new UnfoldingMap(this, 510, 0, 500, 400, new MapBox.CustomMapBoxProvider(mapStyle));
         mapFullData.setZoomRange(1, 20);
         mapFullData.zoomAndPanTo(11, PRESENT);
         mapFullData.setBackgroundColor(255);
@@ -136,14 +136,14 @@ public class ProcessingDemo3 extends PApplet {
 
 
         //**MapRandom, 左下
-        mapRandom = new UnfoldingMap(this, 0, 400, 500, 400, new MapBox.CustomMapBoxProvider(mapStyle));
+        mapRandom = new UnfoldingMap(this, 0, 410, 500, 400, new MapBox.CustomMapBoxProvider(mapStyle));
         mapRandom.setZoomRange(1, 20);
         mapRandom.zoomAndPanTo(11, PRESENT);
         mapRandom.setBackgroundColor(255);
         mapRandom.setTweening(true);
 
         //**MapVFGS, 右下
-        mapVFGS = new UnfoldingMap(this, 500, 400, 500, 400, new MapBox.CustomMapBoxProvider(mapStyle));
+        mapVFGS = new UnfoldingMap(this, 510, 410, 500, 400, new MapBox.CustomMapBoxProvider(mapStyle));
         mapVFGS.setZoomRange(1, 20);
         mapVFGS.zoomAndPanTo(11, PRESENT);
         mapVFGS.setBackgroundColor(255);
@@ -182,8 +182,8 @@ public class ProcessingDemo3 extends PApplet {
 
         if (!zoomPan) {
             drawTraj(0, 500, 0, 400, 0, 0, trajShowIdListFull);
-            drawTraj(0, 500, 0, 400, 500, 0, vfgsShowIdListFull);
-            drawTraj(0, 500, 0, 400, 0, 400, ranShowIdListFull);
+            drawTraj(0, 500, 0, 400, 510, 0, vfgsShowIdListFull);
+            drawTraj(0, 500, 0, 400, 0, 410, ranShowIdListFull);
             drawRegion(COLOR.GREEN, SharedObject.getInstance().getRegionO());
             drawRegion(COLOR.BLUE, SharedObject.getInstance().getRegionD());
             for (Region r_w : SharedObject.getInstance().getRegionWList()) {
@@ -200,6 +200,11 @@ public class ProcessingDemo3 extends PApplet {
             zoomPan = !zoomPan;
         else if (key == 'w') {
             saveRegion();
+        } else if (key == 'e') {
+            trajShowIdListFull.clear();
+            vfgsShowIdListFull.clear();
+            ranShowIdListFull.clear();
+            loop();
         }
         if (zoomPan)
             loop();
@@ -212,14 +217,13 @@ public class ProcessingDemo3 extends PApplet {
         String filePath = "data/GPSRegion/region_" + post + ".txt";
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true));
-            writer.write("-------------Order: left-top, right-top,right-btm, left-btm-------------\n" +
+            writer.write("Order: left-top, right-top,right-btm, left-btm-------------\n" +
                     "-------------O-------------\n" +
                     "-------------W List-------------\n" +
                     "-------------D-------------\n\n\n");
             for (Region r : SharedObject.getInstance().getAllRegions()) {
                 if (r == null)
-                    writer.write("NULL\n" +
-                            "--------------------------\n\n");
+                    writer.write("NULL\n");
                 else {
                     Location l1 = mapOverview.getLocation(r.left_top.x, r.left_top.y);
                     Location l2 = mapOverview.getLocation(r.right_btm.x, r.left_top.y);
@@ -228,6 +232,8 @@ public class ProcessingDemo3 extends PApplet {
 
                     writer.write(l1.toString() + ", " + l2.toString() + ", " + l3.toString() + ", " + l4.toString() + "\n");
                 }
+                writer.write("--------------------------------\n");
+
             }
             writer.close();
 
@@ -450,6 +456,7 @@ public class ProcessingDemo3 extends PApplet {
             if (mouseClick.x >= r.left_top.x - circleSize / 2 && mouseClick.x <= r.right_btm.x + circleSize / 2
                     && mouseClick.y >= r.left_top.y - circleSize / 2 && mouseClick.y <= r.right_btm.y + circleSize / 2) {
                 regionId = r.id;
+                System.out.println(regionId);
                 break;
             }
         }
@@ -501,12 +508,12 @@ public class ProcessingDemo3 extends PApplet {
         noFill();
         strokeWeight(3);
         rect(l_t.x, l_t.y, length, high);
-        rect(l_t.x + 500, l_t.y, length, high);
-        rect(l_t.x, l_t.y + 400, length, high);
+        rect(l_t.x + 510, l_t.y, length, high);
+        rect(l_t.x, l_t.y + 410, length, high);
         strokeWeight(circleSize);
         point(l_t.x, l_t.y);
-        point(l_t.x + 500, l_t.y);
-        point(l_t.x, l_t.y + 400);
+        point(l_t.x + 510, l_t.y);
+        point(l_t.x, l_t.y + 410);
     }
 
     private void drawTraj(int minX, int maxX, int minY, int maxY, int xOff, int yOff, ArrayList<Integer> trajShowIdList) {

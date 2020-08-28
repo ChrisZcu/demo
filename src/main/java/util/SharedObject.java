@@ -167,7 +167,7 @@ public class SharedObject {
     public Region[] getAllRegions() {
         Region[] tmp = new Region[2 + regionWList.size()];
         tmp[0] = regionO;
-        tmp[0] = regionD;
+        tmp[1] = regionD;
         for (int i = 0; i < regionWList.size(); i++) {
             tmp[i + 2] = regionWList.get(i);
         }
