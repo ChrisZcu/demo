@@ -1,5 +1,6 @@
 package app;
 
+import com.sun.awt.AWTUtilities;
 import de.fhpotsdam.unfolding.UnfoldingMap;
 import de.fhpotsdam.unfolding.geo.Location;
 import de.fhpotsdam.unfolding.providers.MapBox;
@@ -67,7 +68,7 @@ public class demo1 extends PApplet {
     // pre-process for data
     private static void preProcess() {
         // init shared object total trajectory list
-        String totalTrajFilePath = "D:\\杂物\\QQ\\1164806828\\FileRecv\\partPortScore\\partPortScore.txt";
+        String totalTrajFilePath = "E:\\zcz\\dbgroup\\data\\Portugal\\GPS\\Porto5w.txt";
         List<Trajectory> trajTotal = new ArrayList<>();
         PreProcess.totalListInit(trajTotal, totalTrajFilePath);
 
@@ -389,21 +390,24 @@ public class demo1 extends PApplet {
     }
 
     private void trajLayer() {
-        if (trajFrame != null)
-            trajFrame.dispose();
+//        if (trajFrame != null)
+//            trajFrame.dispose();
         trajFrame = new JFrame("traj");
         trajFrame.setSize(1000, 800);
         trajFrame.setResizable(false);
         trajFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         initCanvas();
-        trajFrame.add(canvas);
 
+        canvas.setBackground(new Color(255, 0, 0, 0));
+
+//        AWTUtilities.setWindowOpaque(trajFrame, false);
+        trajFrame.add(canvas);
         trajFrame.setVisible(false);
 
         trajFrame.setUndecorated(true);
         trajFrame.setOpacity(0.5f);
-//        trajFrame.setBackground(new Color(0,0,0,0));
+        trajFrame.setBackground(new Color(0,0,0,0));
         trajFrame.setVisible(true);
 
         trajFrame.setAlwaysOnTop(true);

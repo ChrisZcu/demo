@@ -1,5 +1,6 @@
 package app;
 
+import com.sun.awt.AWTUtilities;
 import de.fhpotsdam.unfolding.UnfoldingMap;
 import de.fhpotsdam.unfolding.events.EventDispatcher;
 import de.fhpotsdam.unfolding.geo.Location;
@@ -9,10 +10,19 @@ import de.fhpotsdam.unfolding.utils.ScreenPosition;
 import model.Position;
 import model.Region;
 import model.Trajectory;
+import org.lwjgl.opengl.awt.AWTGLCanvas;
+import org.lwjgl.opengl.awt.GLData;
 import processing.core.PApplet;
 import processing.core.PImage;
 import select.SelectHandle;
 import util.*;
+
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+
+import static org.lwjgl.opengl.GL.*;
+import static org.lwjgl.opengl.GL11.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,11 +40,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
 
+import static org.lwjgl.opengl.GL.createCapabilities;
 import static util.METHOD.FULL;
 import static util.REGION.*;
 import static util.REGION.O_D;
 
-public class ProcessingDemo3 extends PApplet {
+public class ProcessingDemo3_2 extends PApplet {
 
     private static JWindow controlWindow; // control component
     private boolean drawOrigion = false;
@@ -57,7 +68,7 @@ public class ProcessingDemo3 extends PApplet {
     private ArrayList<Integer> vfgsShowIdListFull = new ArrayList<>();
     private ArrayList<Integer> ranShowIdListFull = new ArrayList<>();
 
-    // map
+    //map
     private UnfoldingMap mapOverview;
     private UnfoldingMap mapFullData;
     private UnfoldingMap mapRandom;
@@ -115,7 +126,7 @@ public class ProcessingDemo3 extends PApplet {
         background(0);
 
         surface.setTitle("Processing with AWT");
-//        surface.setLocation(0, 0);
+        surface.setLocation(0, 0);
 
         trajIndexAry = new String[THREADNUM][];
 
@@ -205,7 +216,8 @@ public class ProcessingDemo3 extends PApplet {
             vfgsShowIdListFull.clear();
             ranShowIdListFull.clear();
             loop();
-        }
+        } else if (key == 'a')
+            createConvas();
         if (zoomPan)
             loop();
         System.out.println(zoomPan);
@@ -645,6 +657,64 @@ public class ProcessingDemo3 extends PApplet {
             noLoop();
     }
 
+    private void createConvas() {
+        JLabel label = new JLabel("Label text");
+        label.setOpaque(true);
+        label.setBackground(new Color(255, 0, 0, 0));
+
+        JFrame frame = new JFrame("test");
+        frame.setSize(1000, 800);
+        frame.setLocation(0, 0);
+        frame.setUndecorated(true);
+
+        AWTUtilities.setWindowOpaque(frame, false);
+
+        GLData data = new GLData();
+        data.samples = 4;
+        data.swapInterval = 0;
+        final AWTGLCanvas canvas;
+        frame.add(canvas = new AWTGLCanvas(data) {
+            private static final long serialVersionUID = 1L;
+
+            public void initGL() {
+                System.out.println("OpenGL version: " + effective.majorVersion + "." + effective.minorVersion + " (Profile: " + effective.profile + ")");
+                createCapabilities();
+            }
+
+            public void paintGL() {
+                int w = getWidth();
+                int h = getHeight();
+                float aspect = (float) w / h;
+                double now = System.currentTimeMillis() * 0.001;
+                float width = (float) Math.abs(Math.sin(now * 0.3));
+                glClear(GL_COLOR_BUFFER_BIT);
+                glViewport(0, 0, w, h);
+                glBegin(GL_QUADS);
+                glColor3f(0.4f, 0.6f, 0.8f);
+                glVertex2f(-0.75f * width / aspect, 0.0f);
+                glVertex2f(0, -0.75f);
+                glVertex2f(+0.75f * width / aspect, 0);
+                glVertex2f(0, +0.75f);
+                glEnd();
+                swapBuffers();
+            }
+        }, BorderLayout.CENTER);
+        frame.add(label);
+        frame.pack();
+        frame.setVisible(true);
+        frame.setAlwaysOnTop(true);
+
+        Runnable renderLoop = new Runnable() {
+            public void run() {
+                if (!canvas.isValid())
+                    return;
+                canvas.render();
+                SwingUtilities.invokeLater(this);
+            }
+        };
+        SwingUtilities.invokeLater(renderLoop);
+    }
+
     public static void main(String[] args) {
         if (args.length > 0) {
             totalTrajFilePath = args[0];
@@ -653,7 +723,7 @@ public class ProcessingDemo3 extends PApplet {
             shotDir = args[3];
         }
 //        preProcess();
-        String title = "app.ProcessingDemo3";
+        String title = "app.ProcessingDemo3_2";
 
         PApplet.main(new String[]{title});
     }
